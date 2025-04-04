@@ -9,16 +9,6 @@ import (
 	"strings"
 )
 
-// import (
-// 	"bytes"
-// 	"encoding/binary"
-// 	"fmt"
-// 	"os"
-// 	"path"
-// 	"reflect"
-// 	"time"
-// )
-
 type Status int
 
 const STATUS_OPEN = Status(0)
@@ -102,7 +92,9 @@ func CloseTicket(path string) {
 	fmt.Fprintf(fp, "%s, %s\n", filepath.Dir(path), this_name)
 	SaveTicket(filepath.Dir(path), t)
 
-	possibly_deps := readWholeDirectory(filepath.Dir(path))
+	possibly_deps := ReadWholeDirectory(filepath.Dir(path))
+
+	//yes, this is not ideal. but it honestly doesnt seem to slow the app down.
 	for _, pdep := range possibly_deps {
 		t2, _ := GetTicket(pdep)
 		if t2.Name == this_name {
@@ -115,7 +107,9 @@ func CloseTicket(path string) {
 			}
 		}
 		if len(t2.Dependencies) <= 0 {
-			t2.Status = STATUS_OPEN
+			if t2.Status == STATUS_BLOCKED {
+				t2.Status = STATUS_OPEN
+			}
 		}
 		SaveTicket(filepath.Dir(pdep), t2)
 	}
@@ -126,17 +120,17 @@ func removeUnordered(slice []string, index int) []string {
 	if index < 0 || index >= len(slice) {
 		return slice
 	}
-	slice[index] = slice[len(slice)-1] // Move last element to index
-	return slice[:len(slice)-1]        // Trim last element
+	slice[index] = slice[len(slice)-1]
+	return slice[:len(slice)-1]
 }
 
-func readWholeDirectory(path string) []string {
+func ReadWholeDirectory(path string) []string {
 	entries, _ := os.ReadDir(path)
 	filepaths := []string{}
 	for _, entry := range entries {
 		path := filepath.Join(path, entry.Name())
 		if entry.IsDir() {
-			readWholeDirectory(path)
+			ReadWholeDirectory(path)
 		} else {
 			filepaths = append(filepaths, path)
 		}
